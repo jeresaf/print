@@ -1,11 +1,13 @@
 package io.mosip.print.service.impl;
 
+import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.Map;
 
+import com.google.zxing.client.j2se.MatrixToImageConfig;
 import org.springframework.stereotype.Component;
 
 import com.google.zxing.BarcodeFormat;
@@ -70,6 +72,25 @@ public class QrcodeGeneratorImpl implements QrCodeGenerator<QrVersion> {
 		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 		MatrixToImageWriter.writeToStream(byteMatrix, QrcodeConstants.FILE_FORMAT, outputStream);
 		return outputStream.toByteArray();
+
+	}
+
+	@Override
+	public BufferedImage generateQrCodeToBufferedImage(String data, QrVersion version) throws QrcodeGenerationException {
+		QrcodegeneratorUtils.verifyInput(data, version);
+		configMap.put(EncodeHintType.QR_VERSION, version.getVersion());
+		BitMatrix byteMatrix = null;
+		try {
+			byteMatrix = qrCodeWriter.encode(data, BarcodeFormat.QR_CODE, version.getSize(), version.getSize(),
+					configMap);
+		} catch (WriterException | IllegalArgumentException exception) {
+			throw new QrcodeGenerationException(QrcodeExceptionConstants.QRCODE_GENERATION_EXCEPTION.getErrorCode(),
+					QrcodeExceptionConstants.QRCODE_GENERATION_EXCEPTION.getErrorMessage() + exception.getMessage(),
+					exception);
+		}
+
+		MatrixToImageConfig config = new MatrixToImageConfig(MatrixToImageConfig.BLACK, MatrixToImageConfig.WHITE);
+		return MatrixToImageWriter.toBufferedImage(byteMatrix, config);
 
 	}
 
