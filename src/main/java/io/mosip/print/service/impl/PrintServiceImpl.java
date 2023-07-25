@@ -31,6 +31,9 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
+import io.mosip.print.constant.*;
+import io.mosip.print.entity.BIR;
+import io.mosip.print.entity.BiometricRecord;
 import io.mosip.print.exception.*;
 import io.mosip.vercred.CredentialsVerifier;
 import io.mosip.vercred.exception.ProofDocumentNotFoundException;
@@ -49,15 +52,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 
-import io.mosip.print.constant.EventId;
-import io.mosip.print.constant.EventName;
-import io.mosip.print.constant.EventType;
-import io.mosip.print.constant.IdType;
-import io.mosip.print.constant.ModuleName;
-import io.mosip.print.constant.PDFGeneratorExceptionCodeConstant;
-import io.mosip.print.constant.PlatformSuccessMessages;
-import io.mosip.print.constant.QrVersion;
-import io.mosip.print.constant.UinCardType;
 import io.mosip.print.dto.CryptoWithPinRequestDto;
 import io.mosip.print.dto.CryptoWithPinResponseDto;
 import io.mosip.print.dto.DataShare;
@@ -488,6 +482,47 @@ public class PrintServiceImpl implements PrintService{
 		}
 		return isPhotoSet;
 	}
+
+	private String getApplicantPhoto(String individualBio, Map<String, Object> attributes) throws Exception {
+		String data = "";
+		if (individualBio != null) {
+			CbeffToBiometricUtil util = new CbeffToBiometricUtil(cbeffutil);
+			List<String> subtype = new ArrayList<>();
+			byte[] photoByte = util.getImageBytes(individualBio, FACE, subtype);
+			if (photoByte != null) {
+				data = java.util.Base64.getEncoder().encodeToString(extractFaceImageData(photoByte));
+			}
+		}
+		return data;
+	}
+
+	/*
+	private String generateFace(String biometrics, String rid) throws Exception {
+		byte[] imageBytes=null;
+		String encodedImageString=null;
+
+		BiometricRecord biometricRecord=new BiometricRecord();
+		List<BiometricType> biometricTypes=new ArrayList<>();
+		biometricTypes.add(BiometricType.FACE);
+		CbeffToBiometricUtil util = new CbeffToBiometricUtil(cbeffutil);
+		List<String> subtype = new ArrayList<>();
+		BIR bir = util.getBIR(biometrics, FACE, subtype);
+		List<BIR> birs=new ArrayList<>();
+		birs.add(bir);
+		biometricRecord.setSegments(birs);
+		BiometricRecord biometricRecordRes=iBioApi.extractTemplate(biometricRecord,biometricTypes,null).getResponse();
+		for(BIR birRes:biometricRecordRes.getSegments()){
+			imageBytes=birRes.getBdb();
+			printLogger.info("Rid : {}, Image byte size after compress : {}" +rid,imageBytes.length);
+		}
+
+		if (imageBytes != null) {
+			encodedImageString = Base64.encodeBase64String(imageBytes);
+			printLogger.info("Rid : {}, Image string size after encoded : {}" +rid,encodedImageString.length() );
+		}
+		return encodedImageString;
+	}
+	*/
 
 	/**
 	 * Gets the artifacts.
