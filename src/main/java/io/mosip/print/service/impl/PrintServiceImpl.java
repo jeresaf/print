@@ -1,5 +1,8 @@
 package io.mosip.print.service.impl;
 
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.awt.image.DataBufferByte;
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.File;
@@ -25,15 +28,15 @@ import java.util.UUID;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
+import javax.imageio.ImageIO;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
-import io.mosip.print.constant.*;
-import io.mosip.print.entity.BIR;
-import io.mosip.print.entity.BiometricRecord;
+import com.google.zxing.EncodeHintType;
+import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel;
 import io.mosip.print.exception.*;
 import io.mosip.vercred.CredentialsVerifier;
 import io.mosip.vercred.exception.ProofDocumentNotFoundException;
@@ -46,12 +49,22 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
+import org.opencv.core.MatOfByte;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 
+import io.mosip.print.constant.EventId;
+import io.mosip.print.constant.EventName;
+import io.mosip.print.constant.EventType;
+import io.mosip.print.constant.IdType;
+import io.mosip.print.constant.ModuleName;
+import io.mosip.print.constant.PDFGeneratorExceptionCodeConstant;
+import io.mosip.print.constant.PlatformSuccessMessages;
+import io.mosip.print.constant.QrVersion;
+import io.mosip.print.constant.UinCardType;
 import io.mosip.print.dto.CryptoWithPinRequestDto;
 import io.mosip.print.dto.CryptoWithPinResponseDto;
 import io.mosip.print.dto.DataShare;
@@ -76,6 +89,11 @@ import io.mosip.print.util.RestApiClient;
 import io.mosip.print.util.TemplateGenerator;
 import io.mosip.print.util.Utilities;
 import io.mosip.print.util.WebSubSubscriptionHelper;
+
+import org.opencv.core.Core;
+import org.opencv.core.Mat;
+import org.opencv.imgcodecs.Imgcodecs;
+import org.opencv.imgproc.Imgproc;
 
 @Service
 public class PrintServiceImpl implements PrintService{
@@ -263,7 +281,7 @@ public class PrintServiceImpl implements PrintService{
 				password = getPassword(uin);
 			}
 			if (credentialType.equalsIgnoreCase("qrcode")) {
-				boolean isQRcodeSet = setQrCode(decryptedJson.toString(), attributes);
+				boolean isQRcodeSet = setQrCode(decryptedJson.toString(), attributes, individualBiometric);
 				InputStream uinArtifact = templateGenerator.getTemplate(template, attributes, templateLang);
 				pdfbytes = uinCardGenerator.generateUinCard(uinArtifact, UinCardType.PDF,
 						password);
@@ -280,7 +298,7 @@ public class PrintServiceImpl implements PrintService{
 			byte[] textFileByte = createTextFile(decryptedJson.toString());
 			byteMap.put(UIN_TEXT_FILE, textFileByte);
 
-			boolean isQRcodeSet = setQrCode(decryptedJson.toString(), attributes);
+			boolean isQRcodeSet = setQrCode(decryptedJson.toString(), attributes, individualBiometric);
 			if (!isQRcodeSet) {
 				printLogger.debug(PlatformErrorMessages.PRT_PRT_QRCODE_NOT_SET.name());
 			}
@@ -441,16 +459,59 @@ public class PrintServiceImpl implements PrintService{
 	 *                                                            occurred.
 	 * @throws io.mosip.print.exception.QrcodeGenerationException
 	 */
-	private boolean setQrCode(String qrString, Map<String, Object> attributes)
-			throws QrcodeGenerationException, IOException, io.mosip.print.exception.QrcodeGenerationException {
+	private boolean setQrCode(String qrString, Map<String, Object> attributes, String individualBio)
+			throws QrcodeGenerationException, IOException, io.mosip.print.exception.QrcodeGenerationException, Exception {
 		boolean isQRCodeSet = false;
+
+		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
+		BufferedImage faceImage = null;
+		if (individualBio != null) {
+			CbeffToBiometricUtil util = new CbeffToBiometricUtil(cbeffutil);
+			List<String> subtype = new ArrayList<>();
+			byte[] photoByte = util.getImageBytes(individualBio, FACE, subtype);
+			if (photoByte != null) {
+				//String photo = java.util.Base64.getEncoder().encodeToString(extractFaceImageData(photoByte));
+				Mat source = Imgcodecs.imdecode(new MatOfByte(extractFaceImageData(photoByte)), Imgcodecs.CV_LOAD_IMAGE_UNCHANGED);
+				//Mat source = Imgcodecs.imread()
+				Mat destination = new Mat();
+				Imgproc.cvtColor(source, destination, Imgproc.COLOR_RGB2GRAY);
+				byte[] return_buff = new byte[(int) (destination.total() * destination.channels())];
+				destination.get(0, 0, return_buff);
+				//photo = java.util.Base64.getEncoder().encodeToString(return_buff);
+				InputStream inputStream = new ByteArrayInputStream(return_buff); // byte[] byteArr
+				faceImage = ImageIO.read(inputStream);
+			}
+		}
+
 		JSONObject qrJsonObj = JsonUtil.objectMapperReadValue(qrString, JSONObject.class);
 		qrJsonObj.remove("biometrics");
-		byte[] qrCodeBytes = qrCodeGenerator.generateQrCode(qrJsonObj.toString(), QrVersion.V30);
-		if (qrCodeBytes != null) {
-			String imageString = Base64.encodeBase64String(qrCodeBytes);
-			attributes.put(QRCODE, "data:image/png;base64," + imageString);
-			isQRCodeSet = true;
+		if(faceImage != null) {
+			BufferedImage qrImage = qrCodeGenerator.generateQrCodeToBufferedImage(qrJsonObj.toString(), QrVersion.V30);
+			int deltaHeight = qrImage.getHeight() - faceImage.getHeight();
+			int deltaWidth = qrImage.getWidth() - faceImage.getWidth();
+			// Initialize combined image
+
+			BufferedImage combined = new BufferedImage(qrImage.getHeight(), qrImage.getWidth(), BufferedImage.TYPE_INT_ARGB);
+			Graphics2D g = (Graphics2D) combined.getGraphics();
+
+			g.drawImage(faceImage, 0, 0, null);
+			g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1f));
+			g.drawImage(qrImage, 0, 0, null);
+
+			// Write combined image as PNG to OutputStream
+			byte[] qrCodeBytes = ((DataBufferByte) combined.getData().getDataBuffer()).getData();
+			if (qrCodeBytes != null) {
+				String imageString = Base64.encodeBase64String(qrCodeBytes);
+				attributes.put(QRCODE, "data:image/png;base64," + imageString);
+				isQRCodeSet = true;
+			}
+		} else {
+			byte[] qrCodeBytes = qrCodeGenerator.generateQrCode(qrJsonObj.toString(), QrVersion.V30);
+			if (qrCodeBytes != null) {
+				String imageString = Base64.encodeBase64String(qrCodeBytes);
+				attributes.put(QRCODE, "data:image/png;base64," + imageString);
+				isQRCodeSet = true;
+			}
 		}
 
 		return isQRCodeSet;
@@ -482,47 +543,6 @@ public class PrintServiceImpl implements PrintService{
 		}
 		return isPhotoSet;
 	}
-
-	private String getApplicantPhoto(String individualBio, Map<String, Object> attributes) throws Exception {
-		String data = "";
-		if (individualBio != null) {
-			CbeffToBiometricUtil util = new CbeffToBiometricUtil(cbeffutil);
-			List<String> subtype = new ArrayList<>();
-			byte[] photoByte = util.getImageBytes(individualBio, FACE, subtype);
-			if (photoByte != null) {
-				data = java.util.Base64.getEncoder().encodeToString(extractFaceImageData(photoByte));
-			}
-		}
-		return data;
-	}
-
-	/*
-	private String generateFace(String biometrics, String rid) throws Exception {
-		byte[] imageBytes=null;
-		String encodedImageString=null;
-
-		BiometricRecord biometricRecord=new BiometricRecord();
-		List<BiometricType> biometricTypes=new ArrayList<>();
-		biometricTypes.add(BiometricType.FACE);
-		CbeffToBiometricUtil util = new CbeffToBiometricUtil(cbeffutil);
-		List<String> subtype = new ArrayList<>();
-		BIR bir = util.getBIR(biometrics, FACE, subtype);
-		List<BIR> birs=new ArrayList<>();
-		birs.add(bir);
-		biometricRecord.setSegments(birs);
-		BiometricRecord biometricRecordRes=iBioApi.extractTemplate(biometricRecord,biometricTypes,null).getResponse();
-		for(BIR birRes:biometricRecordRes.getSegments()){
-			imageBytes=birRes.getBdb();
-			printLogger.info("Rid : {}, Image byte size after compress : {}" +rid,imageBytes.length);
-		}
-
-		if (imageBytes != null) {
-			encodedImageString = Base64.encodeBase64String(imageBytes);
-			printLogger.info("Rid : {}, Image string size after encoded : {}" +rid,encodedImageString.length() );
-		}
-		return encodedImageString;
-	}
-	*/
 
 	/**
 	 * Gets the artifacts.
