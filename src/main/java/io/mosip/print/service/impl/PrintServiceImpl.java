@@ -1,10 +1,7 @@
 package io.mosip.print.service.impl;
 
-import java.io.ByteArrayInputStream;
-import java.io.DataInputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
+import java.awt.image.BufferedImage;
+import java.io.*;
 import java.net.URI;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
@@ -25,13 +22,21 @@ import java.util.UUID;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
+import javax.imageio.IIOImage;
+import javax.imageio.ImageIO;
+import javax.imageio.ImageWriteParam;
+import javax.imageio.ImageWriter;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
+import io.mosip.print.constant.*;
+import io.mosip.print.entity.BIR;
+import io.mosip.print.entity.BiometricRecord;
 import io.mosip.print.exception.*;
+import io.mosip.print.spi.IBioApi;
 import io.mosip.vercred.CredentialsVerifier;
 import io.mosip.vercred.exception.ProofDocumentNotFoundException;
 import io.mosip.vercred.exception.ProofTypeNotFoundException;
@@ -49,15 +54,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 
-import io.mosip.print.constant.EventId;
-import io.mosip.print.constant.EventName;
-import io.mosip.print.constant.EventType;
-import io.mosip.print.constant.IdType;
-import io.mosip.print.constant.ModuleName;
-import io.mosip.print.constant.PDFGeneratorExceptionCodeConstant;
-import io.mosip.print.constant.PlatformSuccessMessages;
-import io.mosip.print.constant.QrVersion;
-import io.mosip.print.constant.UinCardType;
 import io.mosip.print.dto.CryptoWithPinRequestDto;
 import io.mosip.print.dto.CryptoWithPinResponseDto;
 import io.mosip.print.dto.DataShare;
@@ -532,7 +528,27 @@ public class PrintServiceImpl implements PrintService {
             CbeffToBiometricUtil util = new CbeffToBiometricUtil(cbeffutil);
             List<String> subtype = new ArrayList<>();
             byte[] photoByte = util.getImageBytes(value, FACE, subtype);
-            if (photoByte != null) {
+
+            BufferedImage inputImage = ImageIO.read(new ByteArrayInputStream(photoByte));
+            Iterator<ImageWriter> writers = ImageIO.getImageWritersByFormatName("jpg");
+            ImageWriter writer = writers.next();
+
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+
+            writer.setOutput(bos);
+
+            ImageWriteParam params = writer.getDefaultWriteParam();
+            params.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
+            params.setCompressionQuality(0.5f);
+
+            writer.write(null, new IIOImage(inputImage, null, null), params);
+
+            byte [] newPhotoByte = bos.toByteArray();
+
+            bos.close();
+            writer.dispose();
+
+            if (newPhotoByte != null) {
                 String data = java.util.Base64.getEncoder().encodeToString(extractFaceImageData(photoByte));
                 photo = "data:image/png;base64," + data;
             }
