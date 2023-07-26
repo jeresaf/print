@@ -535,7 +535,7 @@ public class PrintServiceImpl implements PrintService {
 
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
 
-            writer.setOutput(bos);
+            writer.setOutput(ImageIO.createImageOutputStream(bos));
 
             ImageWriteParam params = writer.getDefaultWriteParam();
             params.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
