@@ -1,5 +1,6 @@
 package io.mosip.print.service.impl;
 
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.net.URI;
@@ -541,6 +542,8 @@ public class PrintServiceImpl implements PrintService {
             params.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
             params.setCompressionQuality(0.5f);
 
+            printLogger.info("Input Image byte Size: {}, Buffered Image is null: {}", photoByte.length, inputImage == null);
+            inputImage = removeAlphaChannel(inputImage);
             writer.write(null, new IIOImage(inputImage, null, null), params);
 
             byte [] newPhotoByte = bos.toByteArray();
@@ -551,9 +554,30 @@ public class PrintServiceImpl implements PrintService {
             if (newPhotoByte != null) {
                 String data = java.util.Base64.getEncoder().encodeToString(extractFaceImageData(photoByte));
                 photo = "data:image/png;base64," + data;
+                printLogger.info("Final Image Size: {}", newPhotoByte.length);
+            } else {
+                printLogger.info("Final Image Is Null");
             }
         }
         return photo;
+    }
+
+    private static BufferedImage removeAlphaChannel(BufferedImage img) {
+        if (!img.getColorModel().hasAlpha()) {
+            return img;
+        }
+
+        BufferedImage target = createImage(img.getWidth(), img.getHeight(), false);
+        Graphics2D g = target.createGraphics();
+        // g.setColor(new Color(color, false));
+        g.fillRect(0, 0, img.getWidth(), img.getHeight());
+        g.drawImage(img, 0, 0, null);
+        g.dispose();
+
+        return target;
+    }
+    private static BufferedImage createImage(int width, int height, boolean hasAlpha) {
+        return new BufferedImage(width, height, hasAlpha ? BufferedImage.TYPE_INT_ARGB : BufferedImage.TYPE_INT_RGB);
     }
 
     /**
