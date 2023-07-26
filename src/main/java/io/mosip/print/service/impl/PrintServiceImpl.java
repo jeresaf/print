@@ -530,7 +530,7 @@ public class PrintServiceImpl implements PrintService {
             List<String> subtype = new ArrayList<>();
             byte[] photoByte = util.getImageBytes(value, FACE, subtype);
 
-            String data = "data:image/png;base64," + java.util.Base64.getEncoder().encodeToString(extractFaceImageData(photoByte));
+            String data = java.util.Base64.getEncoder().encodeToString(extractFaceImageData(photoByte));
 
             BufferedImage inputImage = ImageIO.read(new ByteArrayInputStream(java.util.Base64.getDecoder().decode(data)));
             Iterator<ImageWriter> writers = ImageIO.getImageWritersByFormatName("png");
