@@ -530,8 +530,10 @@ public class PrintServiceImpl implements PrintService {
             List<String> subtype = new ArrayList<>();
             byte[] photoByte = util.getImageBytes(value, FACE, subtype);
 
-            BufferedImage inputImage = ImageIO.read(new ByteArrayInputStream(extractFaceImageData(photoByte)));
-            Iterator<ImageWriter> writers = ImageIO.getImageWritersByFormatName("jpg");
+            String data = "data:image/png;base64," + java.util.Base64.getEncoder().encodeToString(extractFaceImageData(photoByte));
+
+            BufferedImage inputImage = ImageIO.read(new ByteArrayInputStream(java.util.Base64.getDecoder().decode(data)));
+            Iterator<ImageWriter> writers = ImageIO.getImageWritersByFormatName("png");
             ImageWriter writer = writers.next();
 
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
@@ -551,8 +553,8 @@ public class PrintServiceImpl implements PrintService {
             bos.close();
             writer.dispose();
 
-            String data = java.util.Base64.getEncoder().encodeToString(newPhotoByte);
-            photo = "data:image/png;base64," + data;
+            String data2 = java.util.Base64.getEncoder().encodeToString(newPhotoByte);
+            photo = "data:image/png;base64," + data2;
             printLogger.info("Final Image Size: {}", newPhotoByte.length);
 
         }
