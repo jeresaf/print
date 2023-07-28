@@ -55,6 +55,7 @@ public class CbeffToBiometricUtil {
 
 	}
 
+
 	/**
 	 * Gets the photo.
 	 *
@@ -78,6 +79,7 @@ public class CbeffToBiometricUtil {
 
 		return photoBytes;
 	}
+
 
 	/**
 	 * Gets the photo by type and sub type.

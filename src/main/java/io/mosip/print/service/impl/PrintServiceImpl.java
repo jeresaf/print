@@ -33,11 +33,13 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
+import io.mosip.kernel.biometrics.constant.BiometricType;
+import io.mosip.kernel.biometrics.entities.BIR;
+import io.mosip.kernel.biometrics.entities.BiometricRecord;
+import io.mosip.kernel.biometrics.spi.IBioApi;
 import io.mosip.print.constant.*;
-import io.mosip.print.entity.BIR;
-import io.mosip.print.entity.BiometricRecord;
 import io.mosip.print.exception.*;
-import io.mosip.print.spi.IBioApi;
+import io.mosip.print.util.*;
 import io.mosip.vercred.CredentialsVerifier;
 import io.mosip.vercred.exception.ProofDocumentNotFoundException;
 import io.mosip.vercred.exception.ProofTypeNotFoundException;
@@ -68,17 +70,6 @@ import io.mosip.print.service.PrintService;
 import io.mosip.print.service.UinCardGenerator;
 import io.mosip.print.spi.CbeffUtil;
 import io.mosip.print.spi.QrCodeGenerator;
-import io.mosip.print.util.AuditLogRequestBuilder;
-import io.mosip.print.util.CbeffToBiometricUtil;
-import io.mosip.print.util.CryptoCoreUtil;
-import io.mosip.print.util.CryptoUtil;
-import io.mosip.print.util.DataShareUtil;
-import io.mosip.print.util.DateUtils;
-import io.mosip.print.util.JsonUtil;
-import io.mosip.print.util.RestApiClient;
-import io.mosip.print.util.TemplateGenerator;
-import io.mosip.print.util.Utilities;
-import io.mosip.print.util.WebSubSubscriptionHelper;
 
 @Service
 public class PrintServiceImpl implements PrintService {
@@ -99,6 +90,9 @@ public class PrintServiceImpl implements PrintService {
 
     @Autowired
     private CryptoCoreUtil cryptoCoreUtil;
+
+    @Autowired
+    private IBioApi iBioApi;
 
     /**
      * The Constant FILE_SEPARATOR.
@@ -199,6 +193,9 @@ public class PrintServiceImpl implements PrintService {
     @Autowired
     private CbeffUtil cbeffutil;
 
+    @Autowired
+    private io.mosip.kernel.biometrics.spi.CbeffUtil cbeffUtil;
+
     /**
      * The env.
      */
@@ -222,6 +219,12 @@ public class PrintServiceImpl implements PrintService {
 
     @Value("${mosip.print.verify.credentials.flag:true}")
     private boolean verifyCredentialsFlag;
+
+    static {
+        // load OpenCV library
+        nu.pattern.OpenCV.loadShared();
+        System.loadLibrary(org.opencv.core.Core.NATIVE_LIBRARY_NAME);
+    }
 
 
     public boolean generateCard(EventModel eventModel) {
@@ -298,9 +301,9 @@ public class PrintServiceImpl implements PrintService {
             org.json.JSONObject credentialSubjectJson = new org.json.JSONObject(credentialSubject);
             org.json.JSONObject decryptedJson = decryptAttribute(credentialSubjectJson, encryptionPin, credential);
             individualBio = decryptedJson.getString("biometrics");
-            String individualBiometric = new String(individualBio);
-			String userImage = getApplicantPhoto(individualBiometric);
             uin = decryptedJson.getString("UIN");
+            String individualBiometric = new String(individualBio);
+			String userImage = generateFace(individualBiometric, uin);
             if (isPasswordProtected) {
                 password = getPassword(uin);
             }
@@ -514,12 +517,40 @@ public class PrintServiceImpl implements PrintService {
             List<String> subtype = new ArrayList<>();
             byte[] photoByte = util.getImageBytes(value, FACE, subtype);
             if (photoByte != null) {
+                printLogger.info("Image size before {}", photoByte.length);
                 String data = java.util.Base64.getEncoder().encodeToString(extractFaceImageData(photoByte));
+                printLogger.info("Image size after {}", data.length());
                 attributes.put(APPLICANT_PHOTO, "data:image/png;base64," + data);
                 isPhotoSet = true;
             }
         }
         return isPhotoSet;
+    }
+
+    private String generateFace(String biometrics, String rid) throws Exception {
+        byte[] imageBytes=null;
+        String encodedImageString=null;
+
+        io.mosip.kernel.biometrics.entities.BiometricRecord biometricRecord=new io.mosip.kernel.biometrics.entities.BiometricRecord();
+        List<io.mosip.kernel.biometrics.constant.BiometricType> biometricTypes=new ArrayList<>();
+        biometricTypes.add(BiometricType.FACE);
+        CbeffToBiometric util = new CbeffToBiometric(cbeffUtil);
+        List<String> subtype = new ArrayList<>();
+        io.mosip.kernel.biometrics.entities.BIR bir = util.getBIR(biometrics, FACE, subtype);
+        List<io.mosip.kernel.biometrics.entities.BIR> birs=new ArrayList<>();
+        birs.add(bir);
+        biometricRecord.setSegments(birs);
+        BiometricRecord biometricRecordRes=iBioApi.extractTemplate(biometricRecord,biometricTypes,null).getResponse();
+        for(BIR birRes:biometricRecordRes.getSegments()){
+            imageBytes=birRes.getBdb();
+            printLogger.info("Rid : {}, Image byte size after compress : {}" +rid,imageBytes.length);
+        }
+
+        if (imageBytes != null) {
+            encodedImageString = Base64.encodeBase64String(imageBytes);
+            printLogger.info("Rid : {}, Image string size after encoded : {}" +rid,encodedImageString.length() );
+        }
+        return encodedImageString;
     }
 
     private String getApplicantPhoto(String individualBio) throws Exception {
