@@ -91,7 +91,7 @@ public class PrintServiceImpl implements PrintService {
     @Autowired
     private CryptoCoreUtil cryptoCoreUtil;
 
-    @Autowired
+    @Autowired(required = false)
     private IBioApi iBioApi;
 
     /**
@@ -193,7 +193,7 @@ public class PrintServiceImpl implements PrintService {
     @Autowired
     private CbeffUtil cbeffutil;
 
-    @Autowired
+    @Autowired(required = false)
     private io.mosip.kernel.biometrics.spi.CbeffUtil cbeffUtil;
 
     /**
