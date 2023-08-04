@@ -1,11 +1,8 @@
 package io.mosip.print.kernal.biometrics.impl;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 
@@ -19,7 +16,6 @@ import io.mosip.kernel.biometrics.commons.CbeffValidator;
 import io.mosip.kernel.biometrics.entities.BIR;
 import io.mosip.kernel.biometrics.spi.CbeffUtil;
 import io.mosip.kernel.cbeffutil.container.impl.CbeffContainerImpl;
-import io.mosip.kernel.core.util.FileUtils;
 
 /**
  * This class is used to create,update, validate and search Cbeff data.
@@ -27,7 +23,7 @@ import io.mosip.kernel.core.util.FileUtils;
  * @author Ramadurai Pandian
  */
 @Component
-public class CbeffImpl implements CbeffUtil {
+public class CbeffImpl2 implements CbeffUtil {
 
 	/*
 	 * XSD storage path from config server

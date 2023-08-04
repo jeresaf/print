@@ -49,7 +49,7 @@ import org.springframework.stereotype.Component;
  * 
  */
 @Component
-public class BioApiImpl implements IBioApi {
+public class BioApiImpl2 implements IBioApi {
 
 	private static final String FORMAT_SUFFIX = ".format";
 
