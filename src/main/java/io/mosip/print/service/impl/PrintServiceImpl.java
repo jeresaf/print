@@ -36,7 +36,6 @@ import com.google.gson.GsonBuilder;
 import io.mosip.kernel.biometrics.constant.BiometricType;
 import io.mosip.kernel.biometrics.entities.BIR;
 import io.mosip.kernel.biometrics.entities.BiometricRecord;
-import io.mosip.kernel.biometrics.spi.IBioApi;
 import io.mosip.print.constant.*;
 import io.mosip.print.exception.*;
 import io.mosip.print.util.*;
@@ -91,8 +90,8 @@ public class PrintServiceImpl implements PrintService {
     @Autowired
     private CryptoCoreUtil cryptoCoreUtil;
 
-    @Autowired(required = false)
-    private IBioApi iBioApi;
+    @Autowired
+    private io.mosip.kernel.biometrics.spi.IBioApi iBioApi;
 
     /**
      * The Constant FILE_SEPARATOR.
@@ -193,7 +192,7 @@ public class PrintServiceImpl implements PrintService {
     @Autowired
     private CbeffUtil cbeffutil;
 
-    @Autowired(required = false)
+    @Autowired
     private io.mosip.kernel.biometrics.spi.CbeffUtil cbeffUtil;
 
     /**
