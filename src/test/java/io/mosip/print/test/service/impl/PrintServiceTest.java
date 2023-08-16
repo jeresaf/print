@@ -7,6 +7,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 
+import io.mosip.print.spi.CbeffUtils;
 import org.apache.commons.io.FileUtils;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -27,7 +28,6 @@ import io.mosip.print.model.EventModel;
 import io.mosip.print.service.PrintRestClientService;
 import io.mosip.print.service.UinCardGenerator;
 import io.mosip.print.service.impl.PrintServiceImpl;
-import io.mosip.print.spi.CbeffUtil;
 import io.mosip.print.spi.QrCodeGenerator;
 import io.mosip.print.test.TestBootApplication;
 import io.mosip.print.util.CryptoCoreUtil;
@@ -77,7 +77,7 @@ public class PrintServiceTest {
 	private CryptoUtil cryptoUtil;
 
 	@Mock
-	private CbeffUtil cbeffutil;
+	private CbeffUtils cbeffutil;
 
 	private ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 

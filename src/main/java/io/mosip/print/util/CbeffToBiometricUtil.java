@@ -5,6 +5,8 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.mosip.print.spi.CbeffUtils;
+import io.mosip.print.spi.IBioApis;
 import org.apache.commons.codec.binary.Base64;
 import org.slf4j.Logger;
 
@@ -17,10 +19,8 @@ import io.mosip.print.exception.BiometricTagMatchException;
 import io.mosip.print.exception.PlatformErrorMessages;
 import io.mosip.print.logger.PrintLogger;
 import io.mosip.print.model.KeyValuePair;
-import io.mosip.print.service.impl.BioApiImpl;
+import io.mosip.print.service.impl.BioApisImpl;
 import io.mosip.print.service.impl.CbeffImpl;
-import io.mosip.print.spi.CbeffUtil;
-import io.mosip.print.spi.IBioApi;
 
 /**
  * The Class CbeffToBiometricUtil.
@@ -34,16 +34,16 @@ public class CbeffToBiometricUtil {
 	Logger printLogger = PrintLogger.getLogger(CbeffToBiometricUtil.class);
 
 	/** The cbeffutil. */
-	private CbeffUtil cbeffutil = new CbeffImpl();
+	private CbeffUtils cbeffutil = new CbeffImpl();
 	/** the bioApi */
-	private IBioApi bioAPi = new BioApiImpl();
+	private IBioApis bioAPi = new BioApisImpl();
 
 	/**
 	 * Instantiates a new cbeff to biometric util.
 	 *
 	 * @param cbeffutil the cbeffutil
 	 */
-	public CbeffToBiometricUtil(CbeffUtil cbeffutil) {
+	public CbeffToBiometricUtil(CbeffUtils cbeffutil) {
 		this.cbeffutil = cbeffutil;
 	}
 

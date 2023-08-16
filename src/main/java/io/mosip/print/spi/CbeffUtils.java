@@ -12,7 +12,7 @@ import io.mosip.print.entity.BIR;
  *         Interface for Cbeff Interface
  *
  */
-public interface CbeffUtil {
+public interface CbeffUtils {
 
 	public byte[] createXML(List<BIR> cbeffPack) throws Exception;
 

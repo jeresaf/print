@@ -36,6 +36,7 @@ import com.google.gson.GsonBuilder;
 import io.mosip.kernel.biometrics.constant.BiometricType;
 import io.mosip.kernel.biometrics.entities.BIR;
 import io.mosip.kernel.biometrics.entities.BiometricRecord;
+import io.mosip.kernel.biometrics.spi.IBioApi;
 import io.mosip.print.constant.*;
 import io.mosip.print.exception.*;
 import io.mosip.print.util.*;
@@ -67,7 +68,7 @@ import io.mosip.print.model.EventModel;
 import io.mosip.print.model.StatusEvent;
 import io.mosip.print.service.PrintService;
 import io.mosip.print.service.UinCardGenerator;
-import io.mosip.print.spi.CbeffUtil;
+import io.mosip.print.spi.CbeffUtils;
 import io.mosip.print.spi.QrCodeGenerator;
 
 @Service
@@ -91,7 +92,7 @@ public class PrintServiceImpl implements PrintService {
     private CryptoCoreUtil cryptoCoreUtil;
 
     @Autowired
-    private io.mosip.kernel.biometrics.spi.IBioApi iBioApi;
+    private IBioApi iBioApi;
 
     /**
      * The Constant FILE_SEPARATOR.
@@ -190,7 +191,7 @@ public class PrintServiceImpl implements PrintService {
      * The cbeffutil.
      */
     @Autowired
-    private CbeffUtil cbeffutil;
+    private CbeffUtils cbeffutil;
 
     @Autowired
     private io.mosip.kernel.biometrics.spi.CbeffUtil cbeffUtil;
@@ -201,8 +202,8 @@ public class PrintServiceImpl implements PrintService {
     @Autowired
     private Environment env;
 
-    @Autowired
-    private CredentialsVerifier credentialsVerifier;
+ //   @Autowired
+   // private CredentialsVerifier credentialsVerifier;
 
     @Value("${mosip.datashare.partner.id}")
     private String partnerId;
@@ -241,10 +242,10 @@ public class PrintServiceImpl implements PrintService {
             String ecryptionPin = eventModel.getEvent().getData().get("protectionKey").toString();
             String decodedCredential = cryptoCoreUtil.decrypt(credential);
             printLogger.debug("vc is printed security valuation.... : {}", decodedCredential);
-            if (verifyCredentialsFlag) {
+           /* if (verifyCredentialsFlag) {
                 printLogger.info("Configured received credentials to be verified. Flag {}", verifyCredentialsFlag);
                 try {
-                    verified = credentialsVerifier.verifyPrintCredentials(decodedCredential);
+                  //  verified = credentialsVerifier.verifyPrintCredentials(decodedCredential);
                     if (!verified) {
                         printLogger.error("Received Credentials failed in verifiable credential verify method. So, the credentials will not be printed." +
                                 " Id: {}, Transaction Id: {}", eventModel.getEvent().getId(), eventModel.getEvent().getTransactionId());
@@ -258,7 +259,7 @@ public class PrintServiceImpl implements PrintService {
                             " Id: {}, Transaction Id: {}", eventModel.getEvent().getId(), eventModel.getEvent().getTransactionId());
                     return false;
                 }
-            }
+            }*/
             Map proofMap = new HashMap<String, String>();
             proofMap = (Map) eventModel.getEvent().getData().get("proof");
             byte[] pdfbytes = getDocuments(decodedCredential,

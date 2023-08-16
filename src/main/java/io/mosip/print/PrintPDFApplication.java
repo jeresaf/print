@@ -1,5 +1,8 @@
 package io.mosip.print;
 
+import io.mosip.extractor.face.sdk.impl.FaceSDKImpl;
+import io.mosip.kernel.biometrics.spi.CbeffUtil;
+import io.mosip.kernel.biometrics.spi.IBioApi;
 import io.mosip.vercred.CredentialsVerifier;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -13,7 +16,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 
 import io.mosip.print.service.impl.CbeffImpl;
-import io.mosip.print.spi.CbeffUtil;
+import io.mosip.print.spi.CbeffUtils;
 
 
 @SpringBootApplication(scanBasePackages = { "io.mosip.print.*", "${mosip.auth.adapter.impl.basepackage}"  }, exclude = { DataSourceAutoConfiguration.class,
@@ -26,13 +29,22 @@ public class PrintPDFApplication {
 
 	@Bean
 	@Primary
-	public CbeffUtil getCbeffUtil() {
+	public CbeffUtils getCbeffUtils() {
 		return new CbeffImpl();
 	}
 
-	@Bean
+	/*@Bean
 	public CredentialsVerifier credentialsVerifier() {
 		return new CredentialsVerifier();
+	}*/
+
+	@Bean
+	public IBioApi iBioApi(){
+		return new FaceSDKImpl();
+	}
+	@Bean
+	public CbeffUtil cbeffUtil(){
+		return new io.mosip.kernel.cbeffutil.impl.CbeffImpl();
 	}
 
 	@Bean

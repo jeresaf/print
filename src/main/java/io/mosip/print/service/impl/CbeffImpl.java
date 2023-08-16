@@ -8,12 +8,12 @@ import java.util.Map;
 
 import javax.annotation.PostConstruct;
 
+import io.mosip.print.spi.CbeffUtils;
 import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import io.mosip.print.entity.BIR;
-import io.mosip.print.spi.CbeffUtil;
 import io.mosip.print.util.CbeffValidator;
 
 /**
@@ -22,7 +22,7 @@ import io.mosip.print.util.CbeffValidator;
  * @author Ramadurai Pandian
  */
 @Component
-public class CbeffImpl implements CbeffUtil {
+public class CbeffImpl implements CbeffUtils {
 
 	/*
 	 * XSD storage path from config server
@@ -117,7 +117,7 @@ public class CbeffImpl implements CbeffUtil {
 	/*
 	 * (non-Javadoc)
 	 * 
-	 * @see io.mosip.kernel.core.cbeffutil.spi.CbeffUtil#validateXML(byte[])
+	 * @see io.mosip.kernel.core.cbeffutil.spi.CbeffUtils#validateXML(byte[])
 	 */
 	@Override
 	public boolean validateXML(byte[] xmlBytes) throws Exception {
@@ -170,7 +170,7 @@ public class CbeffImpl implements CbeffUtil {
 	 * (non-Javadoc)
 	 * 
 	 * @see
-	 * io.mosip.kernel.core.cbeffutil.spi.CbeffUtil#getBIRDataFromXMLType(byte[],
+	 * io.mosip.kernel.core.cbeffutil.spi.CbeffUtils#getBIRDataFromXMLType(byte[],
 	 * java.lang.String)
 	 */
 	@Override
